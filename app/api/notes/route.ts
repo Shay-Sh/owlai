@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
           ilike(notes.title, `%${search}%`),
           ilike(notes.content, `%${search}%`),
           ilike(notes.summary, `%${search}%`)
-        )
+        )!
       );
     }
 

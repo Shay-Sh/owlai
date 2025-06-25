@@ -4,7 +4,7 @@ import { User } from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil'
+  apiVersion: '2025-05-28.basil'
 });
 
 export async function createCheckoutSession({
@@ -49,4 +49,24 @@ export async function getSubscriptionByCustomerId(customerId: string) {
 
 export async function updateSubscription(subscriptionId: string, data: any) {
   return null;
+}
+
+export async function getStripePrices() {
+  // Placeholder - will be replaced with LemonSqueezy
+  return [];
+}
+
+export async function getStripeProducts() {
+  // Placeholder - will be replaced with LemonSqueezy
+  return [];
+}
+
+export async function createCustomerPortalSession(user: User) {
+  // Placeholder - will be replaced with LemonSqueezy
+  return { url: '/pricing' };
+}
+
+export async function handleSubscriptionChange(event: any) {
+  // Placeholder - will be replaced with LemonSqueezy
+  console.log('Subscription change:', event.type);
 }

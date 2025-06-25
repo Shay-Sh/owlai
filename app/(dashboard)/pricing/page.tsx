@@ -1,94 +1,149 @@
-import { checkoutAction } from '@/lib/payments/actions';
 import { Check } from 'lucide-react';
-import { getStripePrices, getStripeProducts } from '@/lib/payments/stripe';
-import { SubmitButton } from './submit-button';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
-// Prices are fresh for one hour max
-export const revalidate = 3600;
-
-export default async function PricingPage() {
-  const [prices, products] = await Promise.all([
-    getStripePrices(),
-    getStripeProducts(),
-  ]);
-
-  const basePlan = products.find((product) => product.name === 'Base');
-  const plusPlan = products.find((product) => product.name === 'Plus');
-
-  const basePrice = prices.find((price) => price.productId === basePlan?.id);
-  const plusPrice = prices.find((price) => price.productId === plusPlan?.id);
-
+export default function PricingPage() {
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="grid md:grid-cols-2 gap-8 max-w-xl mx-auto">
-        <PricingCard
-          name={basePlan?.name || 'Base'}
-          price={basePrice?.unitAmount || 800}
-          interval={basePrice?.interval || 'month'}
-          trialDays={basePrice?.trialPeriodDays || 7}
-          features={[
-            'Unlimited Usage',
-            'Unlimited Workspace Members',
-            'Email Support',
-          ]}
-          priceId={basePrice?.id}
-        />
-        <PricingCard
-          name={plusPlan?.name || 'Plus'}
-          price={plusPrice?.unitAmount || 1200}
-          interval={plusPrice?.interval || 'month'}
-          trialDays={plusPrice?.trialPeriodDays || 7}
-          features={[
-            'Everything in Base, and:',
-            'Early Access to New Features',
-            '24/7 Support + Slack Access',
-          ]}
-          priceId={plusPrice?.id}
-        />
+    <section className="flex-1 p-4 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">
+            Simple, Transparent Pricing
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Start free and upgrade when you need more. No hidden fees, cancel anytime.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Free Plan */}
+          <Card className="relative">
+            <CardHeader>
+              <CardTitle className="text-2xl">Free</CardTitle>
+              <CardDescription>Perfect for getting started</CardDescription>
+              <div className="mt-4">
+                <span className="text-4xl font-bold">$0</span>
+                <span className="text-muted-foreground">/month</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Up to 20 notes/month</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>AI summarization</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Auto-tagging</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Full-text search</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Web interface</span>
+                </li>
+              </ul>
+              <Link href="/sign-up">
+                <Button className="w-full" variant="outline">
+                  Get Started Free
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Pro Plan */}
+          <Card className="relative border-primary">
+            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+              <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                Most Popular
+              </span>
+            </div>
+            <CardHeader>
+              <CardTitle className="text-2xl">Pro</CardTitle>
+              <CardDescription>For power users and professionals</CardDescription>
+              <div className="mt-4">
+                <span className="text-4xl font-bold">$9</span>
+                <span className="text-muted-foreground">/month</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Unlimited notes</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Priority AI processing</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Advanced search & filters</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Chrome extension</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Custom tagging preferences</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Priority support</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Early access to new features</span>
+                </li>
+              </ul>
+              <Button className="w-full bg-primary hover:bg-primary/90">
+                Upgrade to Pro
+              </Button>
+              <p className="text-center text-sm text-muted-foreground mt-2">
+                14-day free trial
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-16 text-center">
+          <h2 className="text-2xl font-bold mb-8">Frequently Asked Questions</h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left">
+            <div>
+              <h3 className="font-semibold mb-2">Can I change plans anytime?</h3>
+              <p className="text-muted-foreground">
+                Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">What happens to my data if I cancel?</h3>
+              <p className="text-muted-foreground">
+                Your data remains accessible for 30 days after cancellation, giving you time to export if needed.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">Is there a free trial for Pro?</h3>
+              <p className="text-muted-foreground">
+                Yes! Pro comes with a 14-day free trial. No credit card required to start.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">How secure is my data?</h3>
+              <p className="text-muted-foreground">
+                Your data is encrypted at rest and in transit. We follow industry best practices for security.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    </main>
-  );
-}
-
-function PricingCard({
-  name,
-  price,
-  interval,
-  trialDays,
-  features,
-  priceId,
-}: {
-  name: string;
-  price: number;
-  interval: string;
-  trialDays: number;
-  features: string[];
-  priceId?: string;
-}) {
-  return (
-    <div className="pt-6">
-      <h2 className="text-2xl font-medium text-gray-900 mb-2">{name}</h2>
-      <p className="text-sm text-gray-600 mb-4">
-        with {trialDays} day free trial
-      </p>
-      <p className="text-4xl font-medium text-gray-900 mb-6">
-        ${price / 100}{' '}
-        <span className="text-xl font-normal text-gray-600">
-          per user / {interval}
-        </span>
-      </p>
-      <ul className="space-y-4 mb-8">
-        {features.map((feature, index) => (
-          <li key={index} className="flex items-start">
-            <Check className="h-5 w-5 text-orange-500 mr-2 mt-0.5 flex-shrink-0" />
-            <span className="text-gray-700">{feature}</span>
-          </li>
-        ))}
-      </ul>
-      <form action={checkoutAction}>
-        <input type="hidden" name="priceId" value={priceId} />
-        <SubmitButton />
-      </form>
-    </div>
+    </section>
   );
 }

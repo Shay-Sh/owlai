@@ -1,15 +1,27 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { createCheckoutSession, createCustomerPortalSession } from './stripe';
-import { withTeam } from '@/lib/auth/middleware';
+import { getUser } from '@/lib/db/queries';
 
-export const checkoutAction = withTeam(async (formData, team) => {
-  const priceId = formData.get('priceId') as string;
-  await createCheckoutSession({ team: team, priceId });
-});
+// Placeholder functions for payment actions
+// These will be replaced with LemonSqueezy integration
 
-export const customerPortalAction = withTeam(async (_, team) => {
-  const portalSession = await createCustomerPortalSession(team);
-  redirect(portalSession.url);
-});
+export async function checkoutAction(formData: FormData) {
+  const user = await getUser();
+  if (!user) {
+    redirect('/sign-in');
+  }
+  
+  // TODO: Implement LemonSqueezy checkout
+  redirect('/pricing');
+}
+
+export async function customerPortalAction() {
+  const user = await getUser();
+  if (!user) {
+    redirect('/sign-in');
+  }
+  
+  // TODO: Implement LemonSqueezy customer portal
+  redirect('/pricing');
+}
