@@ -15,6 +15,7 @@ import { signOut } from '@/app/(login)/actions';
 import { useRouter } from 'next/navigation';
 import { User } from '@/lib/db/schema';
 import useSWR, { mutate } from 'swr';
+import { Toaster } from 'sonner';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -100,11 +101,22 @@ function Header() {
   return (
     <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-        <Link href="/" className="flex items-center">
+        <Link href="/dashboard" className="flex items-center">
           <span className="text-2xl mr-2">🦉</span>
           <span className="text-xl font-bold">OwlAI</span>
         </Link>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-6">
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Dashboard
+            </Link>
+            <Link href="/my-knowledge" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              My Knowledge
+            </Link>
+            <Link href="/add" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Add Content
+            </Link>
+          </nav>
           <Suspense fallback={<div className="h-9" />}>
             <UserMenu />
           </Suspense>
@@ -119,6 +131,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <section className="flex flex-col min-h-screen">
       <Header />
       {children}
+      <Toaster />
     </section>
   );
 }
