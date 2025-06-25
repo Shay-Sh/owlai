@@ -2,9 +2,14 @@ import Stripe from 'stripe';
 import { stripe } from '@/lib/payments/stripe';
 import { NextRequest, NextResponse } from 'next/server';
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder';
 
 export async function POST(request: NextRequest) {
+  // Skip webhook processing during build time
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ received: true });
+  }
+
   const payload = await request.text();
   const signature = request.headers.get('stripe-signature') as string;
 

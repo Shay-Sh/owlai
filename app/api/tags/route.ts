@@ -6,6 +6,11 @@ import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
+    // Skip database operations during build time
+    if (!process.env.POSTGRES_URL) {
+      return NextResponse.json([]);
+    }
+
     const session = await getSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
