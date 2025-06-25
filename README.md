@@ -2,6 +2,8 @@
 
 OwlAI is your intelligent knowledge companion. Save what matters, let AI summarize and organize it for you. From articles to ideas, OwlAI turns your digital mess into organized intelligence.
 
+> 🚀 **Now with database integration** - Ready for production use!
+
 ## ✨ Features
 
 - 🧠 **Smart Summarization** - AI-powered summaries that capture the essence of your content
