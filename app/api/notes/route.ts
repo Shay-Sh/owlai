@@ -15,7 +15,26 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const tag = searchParams.get('tag');
 
-    let query = db
+    // Build where conditions
+    const whereConditions = [eq(notes.userId, session.user.id)];
+
+    // Add search filter
+    if (search) {
+      whereConditions.push(
+        or(
+          ilike(notes.title, `%${search}%`),
+          ilike(notes.content, `%${search}%`),
+          ilike(notes.summary, `%${search}%`)
+        )
+      );
+    }
+
+    // Add tag filter
+    if (tag) {
+      whereConditions.push(eq(tags.name, tag));
+    }
+
+    const results = await db
       .select({
         id: notes.id,
         title: notes.title,
@@ -31,34 +50,8 @@ export async function GET(request: NextRequest) {
       .from(notes)
       .leftJoin(noteTags, eq(notes.id, noteTags.noteId))
       .leftJoin(tags, eq(noteTags.tagId, tags.id))
-      .where(eq(notes.userId, session.user.id))
+      .where(and(...whereConditions))
       .orderBy(desc(notes.createdAt));
-
-    // Add search filter
-    if (search) {
-      query = query.where(
-        and(
-          eq(notes.userId, session.user.id),
-          or(
-            ilike(notes.title, `%${search}%`),
-            ilike(notes.content, `%${search}%`),
-            ilike(notes.summary, `%${search}%`)
-          )
-        )
-      );
-    }
-
-    // Add tag filter
-    if (tag) {
-      query = query.where(
-        and(
-          eq(notes.userId, session.user.id),
-          eq(tags.name, tag)
-        )
-      );
-    }
-
-    const results = await query;
 
     // Group by note id to structure the response properly
     const notesMap = new Map();
