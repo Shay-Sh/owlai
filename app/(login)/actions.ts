@@ -126,8 +126,11 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
 export async function signOut() {
   const user = (await getUser()) as User;
-  await logActivity(user.id, ActivityType.SIGN_OUT);
+  if (user) {
+    await logActivity(user.id, ActivityType.SIGN_OUT);
+  }
   (await cookies()).delete('session');
+  redirect('/sign-in');
 }
 
 const updatePasswordSchema = z.object({

@@ -25,9 +25,16 @@ function UserMenu() {
   const router = useRouter();
 
   async function handleSignOut() {
-    await signOut();
-    mutate('/api/user');
-    router.push('/');
+    try {
+      await signOut();
+      // Clear SWR cache
+      mutate('/api/user', null, false);
+      // The redirect is handled by the signOut function
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Fallback: manually redirect if server action fails
+      router.push('/sign-in');
+    }
   }
 
   if (!user) {
@@ -84,14 +91,13 @@ function UserMenu() {
             <span>Settings</span>
           </Link>
         </DropdownMenuItem>
-        <form action={handleSignOut} className="w-full">
-          <button type="submit" className="flex w-full">
-            <DropdownMenuItem className="w-full flex-1 cursor-pointer">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sign out</span>
-            </DropdownMenuItem>
-          </button>
-        </form>
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={handleSignOut}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Sign out</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
