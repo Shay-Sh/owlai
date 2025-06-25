@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/drizzle';
 import { notes, tags, noteTags } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,8 +78,10 @@ export async function POST(request: NextRequest) {
         const existingNoteTag = await db
           .select()
           .from(noteTags)
-          .where(eq(noteTags.noteId, noteId))
-          .where(eq(noteTags.tagId, tag[0].id))
+          .where(and(
+            eq(noteTags.noteId, noteId),
+            eq(noteTags.tagId, tag[0].id)
+          ))
           .limit(1);
 
         if (!existingNoteTag[0]) {
