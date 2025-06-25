@@ -7,8 +7,9 @@ import {
   UserCog,
   AlertCircle,
   UserMinus,
-  Mail,
-  CheckCircle,
+  FileText,
+  Edit3,
+  Trash2,
   type LucideIcon,
 } from 'lucide-react';
 import { ActivityType } from '@/lib/db/schema';
@@ -21,10 +22,9 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.UPDATE_PASSWORD]: Lock,
   [ActivityType.DELETE_ACCOUNT]: UserMinus,
   [ActivityType.UPDATE_ACCOUNT]: Settings,
-  [ActivityType.CREATE_TEAM]: UserPlus,
-  [ActivityType.REMOVE_TEAM_MEMBER]: UserMinus,
-  [ActivityType.INVITE_TEAM_MEMBER]: Mail,
-  [ActivityType.ACCEPT_INVITATION]: CheckCircle,
+  [ActivityType.ADD_NOTE]: FileText,
+  [ActivityType.UPDATE_NOTE]: Edit3,
+  [ActivityType.DELETE_NOTE]: Trash2,
 };
 
 function getRelativeTime(date: Date) {
@@ -55,14 +55,12 @@ function formatAction(action: ActivityType): string {
       return 'You deleted your account';
     case ActivityType.UPDATE_ACCOUNT:
       return 'You updated your account';
-    case ActivityType.CREATE_TEAM:
-      return 'You created a new team';
-    case ActivityType.REMOVE_TEAM_MEMBER:
-      return 'You removed a team member';
-    case ActivityType.INVITE_TEAM_MEMBER:
-      return 'You invited a team member';
-    case ActivityType.ACCEPT_INVITATION:
-      return 'You accepted an invitation';
+    case ActivityType.ADD_NOTE:
+      return 'You added new knowledge';
+    case ActivityType.UPDATE_NOTE:
+      return 'You updated a note';
+    case ActivityType.DELETE_NOTE:
+      return 'You deleted a note';
     default:
       return 'Unknown action occurred';
   }
