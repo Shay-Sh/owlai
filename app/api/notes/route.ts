@@ -1,8 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { db } from '@/lib/db/drizzle';
-import { notes, tags, noteTags } from '@/lib/db/schema';
+import { notes, tags, noteTags, users } from '@/lib/db/schema';
 import { eq, desc, and, ilike, or } from 'drizzle-orm';
+
+// Load centralized AI settings
+async function loadAISettings() {
+  try {
+    const fs = require('fs').promises;
+    const SETTINGS_FILE = '/tmp/owlai-admin-settings.json';
+    const data = await fs.readFile(SETTINGS_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    // Fallback to environment variables
+    return {
+      webhookUrl: process.env.N8N_WEBHOOK_URL || '',
+      enabled: true,
+    };
+  }
+}
+
+// Trigger centralized AI processing
+async function triggerAIProcessing(note: any, user: any, type: string, url?: string, content?: string) {
+  try {
+    const settings = await loadAISettings();
+    
+    if (!settings.enabled || !settings.webhookUrl) {
+      console.log('AI processing disabled or webhook URL not configured');
+      return;
+    }
+
+    // Get user email for identification
+    const userEmail = user.email;
+
+    const payload = {
+      noteId: note.id,
+      userEmail: userEmail,
+      type,
+      url: type === 'url' ? url : undefined,
+      content: type === 'text' ? content : undefined,
+      title: note.title,
+      timestamp: new Date().toISOString(),
+    };
+
+    await fetch(settings.webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    console.log(`AI processing triggered for user ${userEmail}, note ${note.id}`);
+  } catch (webhookError) {
+    console.error('Failed to trigger centralized AI processing:', webhookError);
+    // Don't fail the request if webhook fails
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -121,27 +175,8 @@ export async function POST(request: NextRequest) {
       processingStatus: 'pending',
     }).returning();
 
-    // Trigger n8n workflow for AI processing
-    if (process.env.N8N_WEBHOOK_URL) {
-      try {
-        await fetch(process.env.N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            noteId: newNote[0].id,
-            type,
-            url: type === 'url' ? url : undefined,
-            content: type === 'text' ? content : undefined,
-            userId: session.user.id,
-          }),
-        });
-      } catch (webhookError) {
-        console.error('Failed to trigger n8n webhook:', webhookError);
-        // Don't fail the request if webhook fails
-      }
-    }
+    // Trigger centralized n8n workflow for AI processing
+    await triggerAIProcessing(newNote[0], session.user, type, url, content);
 
     return NextResponse.json(newNote[0], { status: 201 });
   } catch (error) {

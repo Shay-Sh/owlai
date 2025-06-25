@@ -22,46 +22,86 @@ import {
   AlertCircle,
   ExternalLink,
   Save,
-  TestTube
+  TestTube,
+  Shield,
+  Users,
+  Server
 } from 'lucide-react';
 import { toast } from 'sonner';
+import useSWR from 'swr';
+import { User } from '@/lib/db/schema';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function AISettingsPage() {
+  const { data: user } = useSWR<User>('/api/user', fetcher);
+  
   const [n8nWebhookUrl, setN8nWebhookUrl] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
-  const [autoTagging, setAutoTagging] = useState(true);
-  const [autoSummary, setAutoSummary] = useState(true);
+  const [serviceEnabled, setServiceEnabled] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
 
+  // Check if user is admin
+  const isAdmin = user?.role === 'owner';
+
   useEffect(() => {
-    // Load saved settings
-    const savedN8nUrl = localStorage.getItem('owlai_n8n_webhook');
-    const savedOpenAI = localStorage.getItem('owlai_openai_key');
-    const savedAnthropic = localStorage.getItem('owlai_anthropic_key');
-    const savedPrompt = localStorage.getItem('owlai_custom_prompt');
-    const savedAutoTag = localStorage.getItem('owlai_auto_tagging');
-    const savedAutoSummary = localStorage.getItem('owlai_auto_summary');
+    if (isAdmin) {
+      loadAdminSettings();
+    }
+  }, [isAdmin]);
 
-    if (savedN8nUrl) setN8nWebhookUrl(savedN8nUrl);
-    if (savedOpenAI) setOpenaiApiKey(savedOpenAI);
-    if (savedAnthropic) setAnthropicApiKey(savedAnthropic);
-    if (savedPrompt) setCustomPrompt(savedPrompt);
-    if (savedAutoTag) setAutoTagging(savedAutoTag === 'true');
-    if (savedAutoSummary) setAutoSummary(savedAutoSummary === 'true');
-  }, []);
+  const loadAdminSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/ai-settings');
+      if (response.ok) {
+        const settings = await response.json();
+        setN8nWebhookUrl(settings.webhookUrl || '');
+        setOpenaiApiKey(settings.openaiKey || '');
+        setAnthropicApiKey(settings.anthropicKey || '');
+        setCustomPrompt(settings.customPrompt || '');
+        setServiceEnabled(settings.enabled !== false);
+      }
+    } catch (error) {
+      console.error('Failed to load admin settings:', error);
+    }
+  };
 
-  const saveSettings = () => {
-    localStorage.setItem('owlai_n8n_webhook', n8nWebhookUrl);
-    localStorage.setItem('owlai_openai_key', openaiApiKey);
-    localStorage.setItem('owlai_anthropic_key', anthropicApiKey);
-    localStorage.setItem('owlai_custom_prompt', customPrompt);
-    localStorage.setItem('owlai_auto_tagging', autoTagging.toString());
-    localStorage.setItem('owlai_auto_summary', autoSummary.toString());
-    
-    toast.success('Settings saved successfully!');
+  const saveSettings = async () => {
+    if (!isAdmin) {
+      toast.error('Only administrators can modify AI settings');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/admin/ai-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          webhookUrl: n8nWebhookUrl,
+          openaiKey: openaiApiKey,
+          anthropicKey: anthropicApiKey,
+          customPrompt: customPrompt,
+          enabled: serviceEnabled,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('AI service configuration saved successfully!');
+      } else {
+        toast.error('Failed to save settings');
+      }
+    } catch (error) {
+      toast.error('Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const testConnection = async () => {
@@ -79,7 +119,8 @@ export default function AISettingsPage() {
         },
         body: JSON.stringify({
           test: true,
-          message: 'OwlAI connection test'
+          message: 'OwlAI admin connection test',
+          userEmail: 'admin@owlai.com'
         }),
       });
 
@@ -98,23 +139,93 @@ export default function AISettingsPage() {
     }
   };
 
+  if (!user) {
+    return (
+      <section className="flex-1 p-4 lg:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
+            <div className="h-4 bg-muted rounded w-2/3 mb-8"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <section className="flex-1 p-4 lg:p-8">
+        <div className="max-w-4xl mx-auto">
+          <Card className="text-center py-12">
+            <CardContent>
+              <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Admin Access Required</h2>
+              <p className="text-muted-foreground">
+                Only administrators can access AI service configuration.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="flex-1 p-4 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">AI & Workflow Settings</h1>
+          <h1 className="text-2xl font-bold mb-2">AI Service Administration</h1>
           <p className="text-muted-foreground">
-            Configure your AI processing and automation workflows
+            Configure centralized AI processing for all OwlAI users
           </p>
         </div>
 
         <div className="space-y-6">
+          {/* Service Status */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Server className="h-5 w-5 text-primary" />
+                <CardTitle>Service Status</CardTitle>
+                {serviceEnabled ? (
+                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Enabled
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-red-100 text-red-700">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Disabled
+                  </Badge>
+                )}
+              </div>
+              <CardDescription>
+                Control the AI processing service for all users
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="service-enabled">AI Processing Service</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable or disable AI processing for all users
+                  </p>
+                </div>
+                <Switch
+                  id="service-enabled"
+                  checked={serviceEnabled}
+                  onCheckedChange={setServiceEnabled}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* n8n Workflow Settings */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-primary" />
-                <CardTitle>n8n Workflow Integration</CardTitle>
+                <CardTitle>Centralized n8n Workflow</CardTitle>
                 {connectionStatus === 'connected' && (
                   <Badge variant="secondary" className="bg-green-100 text-green-700">
                     <CheckCircle className="h-3 w-3 mr-1" />
@@ -129,19 +240,19 @@ export default function AISettingsPage() {
                 )}
               </div>
               <CardDescription>
-                Connect your n8n workflow to automatically process and enhance your knowledge
+                Your centralized n8n workflow that processes content for all users
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="n8n-webhook">Webhook URL</Label>
+                <Label htmlFor="n8n-webhook">Master Webhook URL</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     id="n8n-webhook"
                     type="url"
                     value={n8nWebhookUrl}
                     onChange={(e) => setN8nWebhookUrl(e.target.value)}
-                    placeholder="https://your-n8n-instance.com/webhook/owlai"
+                    placeholder="https://your-n8n-instance.com/webhook/owlai-master"
                     className="flex-1"
                   />
                   <Button 
@@ -154,59 +265,25 @@ export default function AISettingsPage() {
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your n8n webhook endpoint for AI processing
+                  All user content will be sent to this endpoint with their email identifier
                 </p>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="auto-tagging">Automatic Tagging</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically generate relevant tags for new content
-                  </p>
-                </div>
-                <Switch
-                  id="auto-tagging"
-                  checked={autoTagging}
-                  onCheckedChange={setAutoTagging}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="auto-summary">Automatic Summarization</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Generate AI-powered summaries for new content
-                  </p>
-                </div>
-                <Switch
-                  id="auto-summary"
-                  checked={autoSummary}
-                  onCheckedChange={setAutoSummary}
-                />
-              </div>
-
-              <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  How to set up n8n workflow
+                  <Users className="h-4 w-4" />
+                  How the centralized workflow works
                 </h4>
                 <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>Create a new workflow in your n8n instance</li>
-                  <li>Add a Webhook trigger node</li>
-                  <li>Add OpenAI/Anthropic nodes for summarization and tagging</li>
-                  <li>Add a HTTP request node to update the note via OwlAI API</li>
-                  <li>Copy the webhook URL and paste it above</li>
+                  <li>User adds content through OwlAI interface</li>
+                  <li>Content is sent to your webhook with user email identifier</li>
+                  <li>Your n8n workflow processes it using your AI API keys</li>
+                  <li>Processed content (summary, tags) is sent back to update the note</li>
+                  <li>User sees enhanced content with AI insights</li>
                 </ol>
-                <a 
-                  href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  n8n Webhook Documentation
-                </a>
+                <div className="mt-3 p-2 bg-blue-100 rounded text-xs font-mono">
+                  Webhook payload: {`{ "noteId": 123, "userEmail": "user@example.com", "content": "...", "type": "url" }`}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -219,7 +296,7 @@ export default function AISettingsPage() {
                 <CardTitle>AI API Configuration</CardTitle>
               </div>
               <CardDescription>
-                Configure your AI provider API keys (stored locally in your browser)
+                Your AI provider API keys (securely stored on your server)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -234,7 +311,7 @@ export default function AISettingsPage() {
                   className="mt-1"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Used for GPT-powered summarization and tagging
+                  Your master OpenAI key for processing all user content
                 </p>
               </div>
 
@@ -249,32 +326,32 @@ export default function AISettingsPage() {
                   className="mt-1"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Used for Claude-powered analysis and insights
+                  Your master Anthropic key for Claude-powered analysis
                 </p>
               </div>
 
               <div>
-                <Label htmlFor="custom-prompt">Custom Processing Prompt</Label>
+                <Label htmlFor="custom-prompt">Master Processing Prompt</Label>
                 <Textarea
                   id="custom-prompt"
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="Enter a custom prompt for AI processing (optional)"
-                  className="mt-1 min-h-[100px]"
+                  placeholder="Enter the system prompt for processing all user content..."
+                  className="mt-1 min-h-[120px]"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Custom instructions for how AI should process your content
+                  This prompt will be used to process content for all users
                 </p>
               </div>
 
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-amber-800">Security Note</p>
-                    <p className="text-amber-700 mt-1">
-                      API keys are stored locally in your browser and never sent to OwlAI servers. 
-                      They are only used by your n8n workflows.
+                    <p className="font-medium text-green-800">Business Model</p>
+                    <p className="text-green-700 mt-1">
+                      You control all AI processing and provide it as a service to your users. 
+                      Users pay monthly subscriptions and you handle the AI costs centrally.
                     </p>
                   </div>
                 </div>
@@ -284,9 +361,13 @@ export default function AISettingsPage() {
 
           {/* Save Button */}
           <div className="flex justify-end">
-            <Button onClick={saveSettings} className="flex items-center gap-2">
+            <Button 
+              onClick={saveSettings} 
+              disabled={isSaving}
+              className="flex items-center gap-2"
+            >
               <Save className="h-4 w-4" />
-              Save Settings
+              {isSaving ? 'Saving...' : 'Save Configuration'}
             </Button>
           </div>
         </div>
